@@ -74,7 +74,16 @@ export class FaucetService {
           `Get free ETH: https://www.alchemy.com/faucets/arbitrum-sepolia`;
       }
 
-      return `Mint failed: ${error.shortMessage || error.message}`;
+      // Catch-all: likely a gas issue
+      const seed = await walletService.getUserSeed(userId);
+      const wallet = this.getWallet(seed, chain);
+      return `❌ Mint failed. Most likely you need testnet ETH for gas.\n\n` +
+        `Your wallet: \`${wallet.address}\`\n\n` +
+        `Get free testnet ETH:\n` +
+        `• [Alchemy Faucet](https://www.alchemy.com/faucets/arbitrum-sepolia)\n` +
+        `• [QuickNode Faucet](https://faucet.quicknode.com/arbitrum/sepolia)\n` +
+        `• [Chainlink Faucet](https://faucets.chain.link/arbitrum-sepolia)\n\n` +
+        `Copy your wallet address, get ETH from a faucet, then run \`/faucet mint\` again.`;
     }
   }
 

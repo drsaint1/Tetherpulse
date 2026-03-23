@@ -39,6 +39,10 @@ export class PulseService {
     const day = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const week = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+    // Build chatId filter — empty string means global (all chats)
+    const chatFilter = chatId ? sql`${schema.tips.chatId} = ${chatId} AND` : sql``;
+    const chatFilterScores = chatId ? sql`${schema.contributionScores.chatId} = ${chatId} AND` : sql``;
+
     // Tip stats - 24h
     const tips24h = await db.select({
       count: sql<number>`count(*)`,
@@ -46,14 +50,14 @@ export class PulseService {
       senders: sql<number>`count(distinct sender_id)`,
       receivers: sql<number>`count(distinct receiver_id)`,
     }).from(schema.tips)
-      .where(sql`${schema.tips.chatId} = ${chatId} AND ${schema.tips.status} = 'confirmed' AND ${schema.tips.createdAt} >= ${day}`);
+      .where(sql`${chatFilter} ${schema.tips.status} = 'confirmed' AND ${schema.tips.createdAt} >= ${day}`);
 
     // Tip stats - 7d
     const tips7d = await db.select({
       count: sql<number>`count(*)`,
       total: sql<string>`coalesce(sum(amount::numeric), 0)`,
     }).from(schema.tips)
-      .where(sql`${schema.tips.chatId} = ${chatId} AND ${schema.tips.status} = 'confirmed' AND ${schema.tips.createdAt} >= ${week}`);
+      .where(sql`${chatFilter} ${schema.tips.status} = 'confirmed' AND ${schema.tips.createdAt} >= ${week}`);
 
     // Top contributors by AI score (24h)
     const topContributors = await db.select({
@@ -61,7 +65,7 @@ export class PulseService {
       avgScore: sql<number>`avg(${schema.contributionScores.score})::int`,
     }).from(schema.contributionScores)
       .innerJoin(schema.users, eq(schema.contributionScores.userId, schema.users.id))
-      .where(sql`${schema.contributionScores.chatId} = ${chatId} AND ${schema.contributionScores.createdAt} >= ${day}`)
+      .where(sql`${chatFilterScores} ${schema.contributionScores.createdAt} >= ${day}`)
       .groupBy(schema.users.username)
       .orderBy(desc(sql`avg(${schema.contributionScores.score})`))
       .limit(5);
@@ -73,7 +77,7 @@ export class PulseService {
       count: sql<number>`count(*)`,
     }).from(schema.tips)
       .innerJoin(schema.users, eq(schema.tips.senderId, schema.users.id))
-      .where(sql`${schema.tips.chatId} = ${chatId} AND ${schema.tips.status} = 'confirmed' AND ${schema.tips.createdAt} >= ${day}`)
+      .where(sql`${chatFilter} ${schema.tips.status} = 'confirmed' AND ${schema.tips.createdAt} >= ${day}`)
       .groupBy(schema.users.username)
       .orderBy(desc(sql`sum(${schema.tips.amount}::numeric)`))
       .limit(5);
@@ -85,7 +89,7 @@ export class PulseService {
       count: sql<number>`count(*)`,
     }).from(schema.tips)
       .innerJoin(schema.users, eq(schema.tips.receiverId, schema.users.id))
-      .where(sql`${schema.tips.chatId} = ${chatId} AND ${schema.tips.status} = 'confirmed' AND ${schema.tips.createdAt} >= ${day}`)
+      .where(sql`${chatFilter} ${schema.tips.status} = 'confirmed' AND ${schema.tips.createdAt} >= ${day}`)
       .groupBy(schema.users.username)
       .orderBy(desc(sql`sum(${schema.tips.amount}::numeric)`))
       .limit(5);
@@ -98,7 +102,7 @@ export class PulseService {
     const activeUsers = await db.select({
       count: sql<number>`count(distinct sender_id) + count(distinct receiver_id)`,
     }).from(schema.tips)
-      .where(sql`${schema.tips.chatId} = ${chatId} AND ${schema.tips.createdAt} >= ${day}`);
+      .where(sql`${chatFilter} ${schema.tips.createdAt} >= ${day}`);
 
     const tipCount24h = Number(tips24h[0]?.count ?? 0);
     const totalVolume24h = parseFloat(tips24h[0]?.total ?? '0');
