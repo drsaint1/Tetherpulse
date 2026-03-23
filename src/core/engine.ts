@@ -12,6 +12,7 @@ import { getDb, schema } from '../db/client';
 import { eq } from 'drizzle-orm';
 import type { ChatMessage, PlatformAdapter, TipSuggestion } from '../adapters/types';
 import type { Asset, ChainId } from '../config/chains';
+import { txLink } from '../config/chains';
 import { formatAmount } from '../utils/formatting';
 import { createLogger } from '../utils/logger';
 
@@ -58,6 +59,10 @@ export class Engine {
           messageContext: msg.text,
         });
 
+        if (result.success) {
+          await this.notifyRecipient(msg.platform, tipIntent.recipient, msg.username, tipIntent.amount, tipIntent.asset, result.txHash, result.chain);
+        }
+
         return result.message;
       }
 
@@ -87,7 +92,7 @@ export class Engine {
     asset: Asset,
     chatId: string,
   ): Promise<TipResult> {
-    return tipService.executeTip({
+    const result = await tipService.executeTip({
       senderPlatform: platform,
       senderPlatformId: platformId,
       senderUsername: username,
@@ -96,6 +101,13 @@ export class Engine {
       asset,
       chatId,
     });
+
+    // Notify recipient via DM
+    if (result.success) {
+      await this.notifyRecipient(platform, recipient, username, amount, asset, result.txHash, result.chain);
+    }
+
+    return result;
   }
 
   /**
@@ -333,6 +345,43 @@ export class Engine {
       chatId,
       messageContext: 'reaction_tip',
     });
+  }
+
+  /**
+   * Notify the recipient that they received a tip via DM
+   */
+  private async notifyRecipient(
+    platform: string,
+    recipientUsername: string,
+    senderUsername: string,
+    amount: number,
+    asset: Asset,
+    txHash?: string,
+    chain?: string,
+  ) {
+    try {
+      const recipient = await walletService.findUserByUsername(platform, recipientUsername);
+      if (!recipient) return;
+
+      const adapter = this.adapters.get(platform);
+      if (!adapter) return;
+
+      let msg = `💰 *You received a tip!*\n\n` +
+        `${formatAmount(amount, asset)} from @${senderUsername}`;
+
+      if (chain && txHash) {
+        const chainId = chain as ChainId;
+        msg += `\nChain: ${chain.toUpperCase()}\nTX: ${txLink(chainId, txHash)}`;
+      }
+
+      msg += `\n\nCheck your balance: /balance`;
+
+      // Send DM to recipient using their platformId
+      await adapter.sendMessage(recipient.platformId, msg);
+    } catch (error) {
+      // DM may fail if user hasn't started the bot — that's OK
+      log.debug({ error, recipientUsername }, 'Could not notify recipient');
+    }
   }
 
   /**

@@ -9,6 +9,17 @@ export interface ChainConfig {
   usdt: { contract: string; decimals: number } | null;
   xaut: { contract: string; decimals: number } | null;
   priority: number; // Lower = preferred
+  explorer: string | null; // Block explorer base URL for tx links
+}
+
+/** Build a clickable Markdown link to view a transaction on the block explorer */
+export function txLink(chain: ChainId, txHash: string): string {
+  const config = CHAIN_CONFIGS[chain];
+  if (config.explorer) {
+    const short = `${txHash.slice(0, 10)}...${txHash.slice(-6)}`;
+    return `[${short}](${config.explorer}/tx/${txHash})`;
+  }
+  return `\`${txHash.slice(0, 10)}...${txHash.slice(-6)}\``;
 }
 
 // Testnet contract addresses
@@ -20,6 +31,7 @@ export const CHAIN_CONFIGS: Record<ChainId, ChainConfig> = {
     usdt: { contract: 'kQD0GKBM8ZbryVk2aESmzfU6b9b_8era_IkvBSELujFZPsyy', decimals: 6 }, // TON testnet USDT
     xaut: null,
     priority: 1,
+    explorer: 'https://testnet.tonviewer.com',
   },
   tron: {
     id: 'tron',
@@ -28,6 +40,7 @@ export const CHAIN_CONFIGS: Record<ChainId, ChainConfig> = {
     usdt: { contract: 'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs', decimals: 6 }, // Shasta testnet USDT
     xaut: null,
     priority: 2,
+    explorer: 'https://shasta.tronscan.org/#',
   },
   polygon: {
     id: 'polygon',
@@ -36,6 +49,7 @@ export const CHAIN_CONFIGS: Record<ChainId, ChainConfig> = {
     usdt: { contract: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582', decimals: 6 }, // Amoy testnet USDT
     xaut: { contract: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582', decimals: 6 }, // placeholder — same token for demo
     priority: 3,
+    explorer: 'https://amoy.polygonscan.com',
   },
   arbitrum: {
     id: 'arbitrum',
@@ -44,6 +58,7 @@ export const CHAIN_CONFIGS: Record<ChainId, ChainConfig> = {
     usdt: { contract: '0xddfce251255d01fd6ae20b6bff669f3c12dd8758', decimals: 6 }, // MockUSDT on Arbitrum Sepolia
     xaut: { contract: '0xddfce251255d01fd6ae20b6bff669f3c12dd8758', decimals: 6 }, // placeholder — same for demo
     priority: 4,
+    explorer: 'https://sepolia.arbiscan.io',
   },
 };
 

@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { walletService } from './wallet-service';
 import { getEnv } from '../config/env';
-import { CHAIN_CONFIGS, type ChainId } from '../config/chains';
+import { CHAIN_CONFIGS, txLink, type ChainId } from '../config/chains';
 import { createLogger } from '../utils/logger';
 
 const log = createLogger('faucet-service');
@@ -60,7 +60,7 @@ export class FaucetService {
       return `✅ *${amount} Test USDT Minted!*\n\n` +
         `${amount} ${mintable.name} → your wallet\n` +
         `Chain: ${CHAIN_CONFIGS[chain].name}\n` +
-        `TX: \`${receipt.hash.slice(0, 10)}...${receipt.hash.slice(-6)}\`\n\n` +
+        `TX: ${txLink(chain, receipt.hash)}\n\n` +
         `You can now send tips! Try:\n` +
         `\`/tip @username 5 USDT\``;
     } catch (error: any) {

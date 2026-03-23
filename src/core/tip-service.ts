@@ -4,7 +4,7 @@ import { walletService } from './wallet-service';
 import { chainRouter } from './chain-router';
 import { abuseGuard } from './abuse-guard';
 import { wdkManager } from '../wallet/wdk-manager';
-import { CHAIN_CONFIGS, type Asset } from '../config/chains';
+import { CHAIN_CONFIGS, txLink, type Asset } from '../config/chains';
 import { streakService } from './streak-service';
 import { createLogger } from '../utils/logger';
 import { formatAmount } from '../utils/formatting';
@@ -168,7 +168,7 @@ export class TipService {
         let message = `✅ *Tip Sent!*\n` +
           `${formatAmount(request.amount, request.asset)} → @${recipientUsername}\n` +
           `Chain: ${CHAIN_CONFIGS[route.chain].name}${gasNote}\n` +
-          (txHash ? `TX: \`${txHash.slice(0, 10)}...${txHash.slice(-6)}\`` : '');
+          (txHash ? `TX: ${txLink(route.chain, txHash)}` : '');
 
         if (newBadges.length > 0) {
           message += `\n\n🏅 *New Badge${newBadges.length > 1 ? 's' : ''}!*\n`;

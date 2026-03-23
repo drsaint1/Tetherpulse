@@ -3,7 +3,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { getDb, schema } from '../db/client';
 import { walletService } from './wallet-service';
 import { getEnv } from '../config/env';
-import { CHAIN_CONFIGS, type ChainId } from '../config/chains';
+import { CHAIN_CONFIGS, txLink, type ChainId } from '../config/chains';
 import { createLogger } from '../utils/logger';
 
 const log = createLogger('yield-service');
@@ -77,7 +77,7 @@ export class YieldService {
 
       return {
         success: true,
-        message: `📈 Deposited ${amount} USDT into Aave V3 on ${CHAIN_CONFIGS[chain].name}!\nYour USDT is now earning ~4-5% APY.\nTX: \`${supplyTx.hash.slice(0, 10)}...${supplyTx.hash.slice(-6)}\``,
+        message: `📈 Deposited ${amount} USDT into Aave V3 on ${CHAIN_CONFIGS[chain].name}!\nYour USDT is now earning ~4-5% APY.\nTX: ${txLink(chain, supplyTx.hash)}`,
         txHash: supplyTx.hash,
       };
     } catch (error: any) {
@@ -123,7 +123,7 @@ export class YieldService {
 
       return {
         success: true,
-        message: `💰 Withdrew ${amount} USDT from Aave V3 on ${CHAIN_CONFIGS[chain].name}!\nTX: \`${withdrawTx.hash.slice(0, 10)}...${withdrawTx.hash.slice(-6)}\``,
+        message: `💰 Withdrew ${amount} USDT from Aave V3 on ${CHAIN_CONFIGS[chain].name}!\nTX: ${txLink(chain, withdrawTx.hash)}`,
         txHash: withdrawTx.hash,
       };
     } catch (error: any) {
